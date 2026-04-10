@@ -1,0 +1,21 @@
+name: dsci575
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - rank-bm25
+      - sentence-transformers
+      - faiss-cpu
+      - streamlit
+      - python-dotenv
+      - pandas
+      - numpy
+      - nltk
+      - scikit-learn
+      - matplotlib
+      - seaborn
+      - jupyter
+      - ipykernel
