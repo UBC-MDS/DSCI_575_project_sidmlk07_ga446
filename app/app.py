@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.utils import load_pickle
 from src.bm25 import bm25_search, load_bm25
-from src.semantic import semantic_search, load_embeddings
+from src.semantic import semantic_search, load_semantic_index
 from sentence_transformers import SentenceTransformer
 
 st.set_page_config(page_title="Amazon Product Search", page_icon="🔍", layout="wide")
@@ -17,12 +17,11 @@ st.caption("Milestone 1 — BM25 & Semantic Retrieval")
 def load_everything():
     corpus = load_pickle("data/processed/corpus.pkl")
     bm25, _ = load_bm25("data/processed/index")
-    embeddings = load_embeddings("data/processed/index")
+    index = load_semantic_index("data/processed/faiss.index")
     model = SentenceTransformer("all-MiniLM-L6-v2")
-    return corpus, bm25, embeddings, model
+    return corpus, bm25, index, model
 
-
-corpus, bm25, embeddings, model = load_everything()
+corpus, bm25, faiss_index, model = load_everything()
 
 st.sidebar.header("Search Settings")
 method = st.sidebar.radio("Retrieval Method", ["BM25", "Semantic", "Both"])
@@ -55,7 +54,7 @@ if query:
         show_results(results, "BM25 Results")
 
     if method in ("Semantic", "Both"):
-        results = semantic_search(query, model, embeddings, corpus, top_k=top_k)
+        results = semantic_search(query, model, faiss_index, corpus, top_k=top_k)
         show_results(results, "Semantic Results")
 else:
     st.info("Type a query above to get started.")
