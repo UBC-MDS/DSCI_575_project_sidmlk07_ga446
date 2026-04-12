@@ -15,11 +15,13 @@ def build_bm25_index(corpus: list[dict]) -> tuple[BM25Okapi, list[list[str]]]:
     print("Tokenizing corpus...")
     tokenized_corpus = [simple_tokenize(doc["combined_text"]) for doc in corpus]
     bm25 = BM25Okapi(tokenized_corpus)
-    print(f"BM25 index ready — {len(tokenized_corpus)} documents.")
+    print(f"BM25 index ready: {len(tokenized_corpus)} documents.")
     return bm25, tokenized_corpus
 
 
-def bm25_search(query: str, bm25: BM25Okapi, corpus: list[dict], top_k: int = 5) -> list[dict]:
+def bm25_search(
+    query: str, bm25: BM25Okapi, corpus: list[dict], top_k: int = 5
+) -> list[dict]:
     """
     BM25 keyword search. Query is tokenized the same way as the corpus.
     Returns top_k results sorted by score descending.
@@ -32,7 +34,9 @@ def bm25_search(query: str, bm25: BM25Okapi, corpus: list[dict], top_k: int = 5)
     scores = bm25.get_scores(tokenized_query)
 
     # same sorting pattern as in lecture
-    ranked_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    ranked_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[
+        :top_k
+    ]
 
     results = []
     for rank, idx in enumerate(ranked_idx, start=1):
@@ -61,10 +65,9 @@ if __name__ == "__main__":
     root = Path(__file__).parent.parent
 
     reviews = load_jsonl_gz(root / "data/raw/All_Beauty.jsonl.gz", max_records=1000)
-    metadata = load_jsonl_gz(root / "data/raw/meta_All_Beauty.jsonl.gz")  # load ALL metadata
+    metadata = load_jsonl_gz(root / "data/raw/meta_All_Beauty.jsonl.gz")
     corpus = build_corpus(reviews, metadata)
 
-    # quick sanity check
     titles_found = sum(1 for doc in corpus if doc["title"])
     print(f"Corpus: {len(corpus)} docs, {titles_found} with titles")
 

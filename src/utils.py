@@ -5,7 +5,8 @@ import pickle
 import pandas as pd
 from pathlib import Path
 
-#from lecture notes
+
+# from lecture notes
 def simple_tokenize(text):
     text = text.lower()
     text = re.sub(r"[^a-z0-9\s-]", "", text)
@@ -31,14 +32,13 @@ def build_corpus(reviews: list[dict], metadata: list[dict]) -> list[dict]:
     Fields used:
       - reviews:  text, rating, asin
       - metadata: title, description, features
-    
+
     We combine title + description + features + review text into
     a single 'combined_text' string used for indexing.
     """
-    # Build a quick asin -> metadata lookup
     meta_lookup = {}
     for m in metadata:
-        asin = m.get("parent_asin", "") 
+        asin = m.get("parent_asin", "")
         if asin:
             meta_lookup[asin] = m
 
@@ -63,14 +63,16 @@ def build_corpus(reviews: list[dict], metadata: list[dict]) -> list[dict]:
 
         combined_text = f"{title} {description} {features} {review_text}"
 
-        corpus.append({
-            "asin": asin,
-            "title": title,
-            "review_text": review_text,
-            "rating": rating,
-            "price": price,
-            "combined_text": combined_text,
-        })
+        corpus.append(
+            {
+                "asin": asin,
+                "title": title,
+                "review_text": review_text,
+                "rating": rating,
+                "price": price,
+                "combined_text": combined_text,
+            }
+        )
 
     return corpus
 
