@@ -1,5 +1,6 @@
 import sys
 import streamlit as st
+import math
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -34,7 +35,9 @@ st.sidebar.header("Search Settings")
 method = st.sidebar.radio("Retrieval Method", ["BM25", "Semantic", "Both"])
 top_k = st.sidebar.slider("Results to show", 1, 10, 5)
 
-query = st.text_input("Enter your search query", placeholder="e.g. moisturizer for dry skin")
+query = st.text_input(
+    "Enter your search query", placeholder="e.g. moisturizer for dry skin"
+)
 
 
 def show_results(results: list[dict], label: str):
@@ -51,17 +54,43 @@ def show_results(results: list[dict], label: str):
                 st.write(f"_{preview}..._" if preview else "_No review text_")
             with col2:
                 st.metric("Rating", f"{r.get('rating', 'N/A')}")
+
+                price_val = r.get("price")
+                if price_val is None or (
+                    isinstance(price_val, float) and math.isnan(price_val)
+                ):
+                    price_display = "N/A"
+                else:
+                    price_display = f"${price_val}"
+
+                st.metric("Price", price_display)
                 st.metric("Score", f"{r['score']:.4f}")
             st.divider()
 
 
 if query:
-    if method in ("BM25", "Both"):
-        results = bm25_search(query, bm25, corpus, top_k=top_k)
-        show_results(results, "BM25 Results")
+    with st.spinner("Searching..."):
+        if method == "Both":
+            col_bm25, col_sem = st.columns(2)
 
-    if method in ("Semantic", "Both"):
-        results = semantic_search(query, model, faiss_index, doc_ids, corpus, top_k=top_k)
-        show_results(results, "Semantic Results")
+            with col_bm25:
+                results_bm25 = bm25_search(query, bm25, corpus, top_k=top_k)
+                show_results(results_bm25, "BM25 Results")
+
+            with col_sem:
+                results_sem = semantic_search(
+                    query, model, faiss_index, doc_ids, corpus, top_k=top_k
+                )
+                show_results(results_sem, "Semantic Results")
+
+        else:
+            if method == "BM25":
+                results = bm25_search(query, bm25, corpus, top_k=top_k)
+                show_results(results, "BM25 Results")
+            elif method == "Semantic":
+                results = semantic_search(
+                    query, model, faiss_index, doc_ids, corpus, top_k=top_k
+                )
+                show_results(results, "Semantic Results")
 else:
     st.info("Type a query above to get started.")
