@@ -37,9 +37,14 @@
 5. MBA Renewing Retinol Serum, 1.7 fl. oz, 0.5% Retinol Hydrates & Brightens Skin's Appearance by Dimin
 
 **Observations & Comparison:**
-* **Which method performs better?** [Notes here]
-* **Are there cases where BM25 fails but semantic search succeeds?** [Notes here]
-* **Are the top results actually useful for the user’s intent?** [Notes here]
+* **Which method performs better?**
+They perform similarly, but both struggle slightly to find a single product that combines all three terms perfectly in the title. Both return highly relevant components (retinol serums and night creams).
+
+* **Are there cases where BM25 fails but semantic search succeeds?**
+BM25 failed on result #2 by returning a "Day Cream," simply because it keyword-matched "Cream". Semantic search avoided day creams, focusing strictly on night creams and serums.
+
+* **Are the top results actually useful for the user’s intent?**
+Mostly yes, both methods successfully identified the core active ingredient and the target application time.
 
 ### Query 2: `body wash to help with rough bumpy skin on my arms` (Medium)
 **BM25 Top 5 Results:**
@@ -57,9 +62,14 @@
 5. Hemp Lotion for Dry Skin - Soothing Rose Flower & Aloe Hydrate Your Complexion - Non-Greasy, Vegan,
 
 **Observations & Comparison:**
-* **Which method performs better?** [Notes here]
-* **Are there cases where BM25 fails but semantic search succeeds?** [Notes here]
-* **Are the top results actually useful for the user’s intent?** [Notes here]
+* **Which method performs better?**
+Semantic search did much better.
+
+* **Are there cases where BM25 fails but semantic search succeeds?**
+BM25 performed poorly, by focusing on exact keywords ("wash", "body", "skin" etc). It returned a facial cleansing brush, an antiseptic cleanser, and a foot wipe. Semantic search successfully decoded the underlying intent and matched rough/bumpy skin with exfoliation.
+
+* **Are the top results actually useful for the user’s intent?**
+Semantic search's results are quite useful. A body scrub or exfoliating mitt is useful for a person with rough, bumpy skin. BM25's results are quite useless for this specific intent.
 
 ### Query 3: `luxury skincare travel kit gift for mom under $50` (Complex)
 **BM25 Top 5 Results:**
@@ -77,9 +87,14 @@
 5. Face Moisturizer by Disco for Men, Hydrating, Anti-Aging Formula with Vitamin C, All Natural and Par
 
 **Observations & Comparison:**
-* **Which method performs better?** [Notes here]
-* **Are there cases where BM25 fails but semantic search succeeds?** [Notes here]
-* **Are the top results actually useful for the user’s intent?** [Notes here]
+* **Which method performs better?**
+BM25 did better, while semantic search was quite bad.
+
+* **Are there cases where BM25 fails but semantic search succeeds?**
+Semantic search returned a makeup brush organizer, a blackhead mask, and a *men's* face moisturizer, completely ignoring the "mom" and "gift" intent. BM25 was able to at least get the "gift" and "mom/women" concepts.
+
+* **Are the top results actually useful for the user’s intent?**
+Most aren't great results, apart from maybe the Caudalie one.
 
 ### Query 4: `mineral face sunscreen` (Easy)
 **BM25 Top 5 Results:**
@@ -97,9 +112,14 @@
 5. Aloe Vera Gel 100% Natural Moisturisers - Pure Organic Fresh Soothing Aloe-Vera Moisturizing Gel Ski
 
 **Observations & Comparison:**
-* **Which method performs better?** [Notes here]
-* **Are there cases where BM25 fails but semantic search succeeds?** [Notes here]
-* **Are the top results actually useful for the user’s intent?** [Notes here]
+* **Which method performs better?**
+BM25 performs much better.
+
+* **Are there cases where BM25 fails but semantic search succeeds?**
+Some of the results of semantic search aren't even sunscreen, because it semantically drifted away.
+
+* **Are the top results actually useful for the user’s intent?**
+All the BM25 results are useful (all are sunscreen, even if not mineral), while a handful of semantic search ones are.
 
 ### Query 5: `what is a good daily sunscreen for dark skin tones that leaves no white cast` (Complex)
 **BM25 Top 5 Results:**
@@ -117,9 +137,14 @@
 5. [Abib] Creme coating mask Tone-up solution 17g (5pcs)
 
 **Observations & Comparison:**
-* **Which method performs better?** [Notes here]
-* **Are there cases where BM25 fails but semantic search succeeds?** [Notes here]
-* **Are the top results actually useful for the user’s intent?** [Notes here]
+* **Which method performs better?**
+BM25 did much better since it at least returned sunscreens. Not all outputs from semantic search are sunscreen.
+
+* **Are there cases where BM25 fails but semantic search succeeds?**
+No, semantic performed poorly.
+
+* **Are the top results actually useful for the user’s intent?**
+Although the exact intent isn't necessarily matched (since no mention of white cast), BM25 results are still somewhat relevant.
 
 ---
 
@@ -127,20 +152,20 @@
 
 ### A. Strengths and Weaknesses
 **BM25:**
-* **Strengths:** Excellent for Easy/Keyword queries (e.g., `vitamin c serum`). It guarantees exact term overlap, ensuring the user gets exactly the category they typed. 
-* **Weaknesses:** Fails on Medium and Complex queries that use descriptive language, synonyms, or negative constraints (e.g., matching the word "break out" in a review, rather than finding a product that *prevents* breaking out).
+* **Strengths:** Excellent for Easy/Keyword queries (e.g., `mineral face sunscreen`). It guarantees exact term overlap, ensuring the user gets exactly the category they typed. Even on complex queries, it anchors well to the core nouns.
+* **Weaknesses:** Fails entirely on Medium queries that use descriptive language or symptoms (e.g., searching for "rough bumpy skin" returns antiseptics instead of the necessary exfoliating scrubs). It is also blind to negative constraints.
 
 **Semantic Search:**
-* **Strengths:** Shines on Medium queries by capturing the underlying intent (e.g., understanding that "rough bumpy skin" maps to exfoliating products). 
-* **Weaknesses:** Susceptible to "semantic drift." On Complex queries, the embeddings might average out the constraints, returning a highly relevant product type but completely missing a hard constraint like "under $20" or "cruelty-free."
+* **Strengths:** Does well on Medium queries by capturing the underlying intent. It successfully understood that a query about "rough bumpy skin" requires an exfoliating scrub or mitt, decoding the problem into a solution.
+* **Weaknesses:** Highly susceptible to severe *semantic drift*, sometimes even on simple queries. It can completely lose the core product category in favor of loosely related concepts (e.g., returning aloe gel instead of sunscreen, or a men's moisturizer for a "gift for mom"). It also blends constraints together rather than strictly enforcing them.
 
 ### B. Challenging Queries for Both Methods
-Both baseline methods struggle heavily with **Complex queries** that contain:
-1. **Negations:** ("without white cast", "doesn't feel greasy")
-2. **Subjectivity:** ("best", "highest rated")
-3. **Hard Numerical Filters:** ("under $20", "over 50")
+Both baseline methods struggle heavily with Complex queries that contain:
+1. **Negations:** (e.g., "no white cast"). Neither method understands that "no" modifies the next words. Semantic search even returned a tone up whitening mask, doing the exact opposite of the user's intent.
+2. **Hard Numerical Filters:** (e.g., "under $50"). Neither method inherently understands price as a filter, prioritizing text matching instead.
+3. **Multi-Faceted Intent:** Queries combining use cases, and subjective qualities (e.g., "luxury travel kit gift for mom") cause both models to not perform so well, usually failing to satisfy more than one of the conditions.
 
 ### C. Where Advanced Methods (RAG or Reranking) Would Help
-* **Hybrid Search + Metadata Filtering:** Extracting entities (like Price < $20, or Brand) to use as hard filters *before* applying vector search would help solve the price constraint issues.
-* **Cross-Encoder Reranking:** A reranker would better evaluate the relationship between all words in the complex queries, scoring a "tubing mascara" higher than a standard mascara, which standard bi-encoder embeddings often mix up.
-* **RAG:** For highly specific queries (like the "luxury skincare gift"), an LLM could analyze the retrieved reviews to confirm if a product is actually well received as a gift, synthesizing a tailored recommendation.
+* **Hybrid Search + Metadata Filtering:** Extracting entities (like Price < $50, or Brand) to use as hard filters *before* applying vector search would help solve the numerical constraint issues and keep results within budget.
+* **Cross-Encoder Reranking:** A reranker would better evaluate the relationship between all words in the complex queries. It would penalize results that miss the core noun (reducing semantic drift).
+* **RAG:** For highly specific queries (like the "luxury skincare gift"), an LLM could analyze the retrieved reviews to confirm if a product is actually well received as a gift by older women, synthesizing a tailored recommendation rather than just returning a list of products.
