@@ -50,16 +50,19 @@ streamlit run app/app.py
 
 ## Dataset & Data Processing
 
+**NOTE:** Due to time and memory constraints when computing dense vector embeddings, we limited the processed corpus to a subset of 5,000 records (configurable via `MAX_REVIEWS` in `prepare_data.py`)
+
 **Source:** Amazon Reviews 2023 (All Beauty category).
 - **Reviews file:** Contains user ratings, review text, timestamps, and product IDs.
 - **Metadata file:** Contains product titles, descriptions, features, and pricing.
 
-**Preprocessing Steps (`src/utils.py`):**
-To prepare the data for retrieval, we execute the following pipeline:
-1. **Field Merging:** We join the reviews and metadata using `parent_asin` and combine the `title`, `description`, `features`, and `review_text` into a single `combined_text` field for each document. Missing fields are safely imputed with empty strings.
-2. **Text Normalization:** The combined text is converted to lowercase to ensure case insensitive matching.
-3. **Punctuation Removal:** Special characters and punctuation are stripped using regular expressions.
-4. **Stopword Removal:** Common English stopwords are filtered out using the NLTK library to reduce noise for the BM25 index and prevent common words (like "for" or "the") from skewing results.
+**Preprocessing Steps (`src/prepare_data.py` & `src/utils.py`):**
+To safely handle the large files and prepare the data for retrieval, we execute the following pipeline:
+1. **Incremental Parquet Conversion:** Raw `.jsonl.gz` files are loaded and processed incrementally in chunks (to prevent memory crashes) and converted into `.parquet` files (`reviews.parquet`, `metadata.parquet`).
+2. **Field Merging:** We join the reviews and metadata dataframes using `parent_asin` and combine the `title`, `description`, `features`, and `review_text` into a single `combined_text` field for each document. Missing fields are safely imputed with empty strings.
+3. **Text Normalization:** The combined text is converted to lowercase to ensure case-insensitive matching.
+4. **Punctuation Removal:** Special characters and punctuation are stripped using regular expressions.
+5. **Stopword Removal:** Common English stopwords are filtered out using the NLTK library to reduce noise for the BM25 index and prevent common words (like "for" or "the") from skewing results.
 
 
 ## Retrieval Methods
