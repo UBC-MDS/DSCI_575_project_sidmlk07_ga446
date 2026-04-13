@@ -4,13 +4,21 @@ import re
 import pickle
 import pandas as pd
 from pathlib import Path
+import nltk
+from nltk.corpus import stopwords
+
+
+nltk.download("stopwords", quiet=True)
+ENGLISH_STOPWORDS = set(stopwords.words("english"))
 
 
 # from lecture notes
 def simple_tokenize(text):
     text = text.lower()
     text = re.sub(r"[^a-z0-9\s-]", "", text)
-    return text.split()
+
+    words = text.split()
+    return [word for word in words if word not in ENGLISH_STOPWORDS]
 
 
 def load_jsonl_gz(filepath: str, max_records: int = None) -> list[dict]:
