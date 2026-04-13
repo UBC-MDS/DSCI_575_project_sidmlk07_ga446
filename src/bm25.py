@@ -25,21 +25,17 @@ def bm25_search(
     """
     BM25 keyword search. Query is tokenized the same way as the corpus.
     Returns top_k results sorted by score descending.
-
-    Adapted from lecture note example:
-        tokenized_query = simple_tokenize(query)
-        scores = bm25.get_scores(tokenized_query)
     """
     tokenized_query = simple_tokenize(query)
     scores = bm25.get_scores(tokenized_query)
 
-    # same sorting pattern as in lecture
-    ranked_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[
-        :top_k
-    ]
+    # from lecture
+    ranked_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
 
     results = []
     for rank, idx in enumerate(ranked_idx, start=1):
+        if idx >= len(corpus):
+            continue
         doc = corpus[idx].copy()
         doc["score"] = float(scores[idx])
         doc["rank"] = rank
@@ -60,24 +56,19 @@ def load_bm25(path_prefix: str) -> tuple[BM25Okapi, list[list[str]]]:
 
 
 if __name__ == "__main__":
-    from utils import load_jsonl_gz, build_corpus
+    from utils import load_corpus_parquet
 
     root = Path(__file__).parent.parent
 
-    reviews = load_jsonl_gz(root / "data/raw/All_Beauty.jsonl.gz", max_records=1000)
-    metadata = load_jsonl_gz(root / "data/raw/meta_All_Beauty.jsonl.gz")
-    corpus = build_corpus(reviews, metadata)
-
-    titles_found = sum(1 for doc in corpus if doc["title"])
-    print(f"Corpus: {len(corpus)} docs, {titles_found} with titles")
+    _, corpus = load_corpus_parquet(root / "data/processed/products.parquet")
+    print(f"Loaded corpus: {len(corpus)} docs")
 
     bm25, tokenized = build_bm25_index(corpus)
     save_bm25(bm25, tokenized, root / "data/processed/index")
+    save_pickle(corpus, root / "data/processed/corpus.pkl")
+    print("Corpus saved!")
 
     query = "moisturizer for dry skin"
     print(f"\nQUERY: {query}\n")
     for r in bm25_search(query, bm25, corpus, top_k=5):
         print(f"{r['rank']}. ({r['score']:.3f}) {r['title'][:70]}")
-
-    save_pickle(corpus, root / "data/processed/corpus.pkl")
-    print("Corpus saved!")

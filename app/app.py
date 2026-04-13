@@ -3,9 +3,9 @@ import streamlit as st
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.utils import load_pickle
+from src.utils import load_corpus_parquet, load_pickle
 from src.bm25 import bm25_search, load_bm25
-from src.semantic import semantic_search, load_semantic_index
+from src.semantic import semantic_search, load_semantic_artifacts
 from sentence_transformers import SentenceTransformer
 
 st.set_page_config(page_title="Amazon Product Search", page_icon="🔍", layout="wide")
@@ -15,13 +15,20 @@ st.caption("Milestone 1 — BM25 & Semantic Retrieval")
 
 @st.cache_resource
 def load_everything():
-    corpus = load_pickle("data/processed/corpus.pkl")
-    bm25, _ = load_bm25("data/processed/index")
-    index = load_semantic_index("data/processed/faiss.index")
-    model = SentenceTransformer("all-MiniLM-L6-v2")
-    return corpus, bm25, index, model
+    # load corpus from parquet
+    df, corpus = load_corpus_parquet("data/processed/products.parquet")
 
-corpus, bm25, faiss_index, model = load_everything()
+    # load BM25
+    bm25, _ = load_bm25("data/processed/index")
+
+    # load FAISS artifacts separately
+    index, doc_ids, config = load_semantic_artifacts("artifacts")
+    model = SentenceTransformer(config["model_name"])
+
+    return corpus, bm25, index, doc_ids, model
+
+
+corpus, bm25, faiss_index, doc_ids, model = load_everything()
 
 st.sidebar.header("Search Settings")
 method = st.sidebar.radio("Retrieval Method", ["BM25", "Semantic", "Both"])
@@ -54,7 +61,7 @@ if query:
         show_results(results, "BM25 Results")
 
     if method in ("Semantic", "Both"):
-        results = semantic_search(query, model, faiss_index, corpus, top_k=top_k)
+        results = semantic_search(query, model, faiss_index, doc_ids, corpus, top_k=top_k)
         show_results(results, "Semantic Results")
 else:
     st.info("Type a query above to get started.")
