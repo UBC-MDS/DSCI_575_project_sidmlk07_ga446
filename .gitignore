@@ -210,8 +210,8 @@ __marimo__/
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*.pkl
-data/processed/*.faiss
-data/processed/*.index
+data/processed/*.parquet
+artifacts/*
 
 # Secrets
 .env

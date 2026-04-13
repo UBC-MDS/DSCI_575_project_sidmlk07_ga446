@@ -2,16 +2,22 @@ import gzip
 import json
 import re
 import pickle
-import numpy as np
 import pandas as pd
 from pathlib import Path
+import nltk
+from nltk.corpus import stopwords
+
+
+nltk.download("stopwords", quiet=True)
+ENGLISH_STOPWORDS = set(stopwords.words("english"))
 
 
 # from lecture notes
 def simple_tokenize(text):
     text = text.lower()
     text = re.sub(r"[^a-z0-9\s-]", "", text)
-    return text.split()
+    words = text.split()
+    return [word for word in words if word not in ENGLISH_STOPWORDS]
 
 
 def load_jsonl_gz(filepath, max_records: int = None) -> list[dict]:
@@ -80,7 +86,7 @@ def build_corpus(reviews: list[dict], metadata: list[dict]) -> list[dict]:
     Fields used:
       - reviews:  text, rating, parent_asin
       - metadata: title, description, features
-    
+
     Combined into a single 'combined_text' string for indexing.
     """
     meta_lookup = {}
@@ -110,19 +116,23 @@ def build_corpus(reviews: list[dict], metadata: list[dict]) -> list[dict]:
 
         combined_text = f"{title} {description} {features} {review_text}"
 
-        corpus.append({
-            "asin": asin,
-            "title": title,
-            "review_text": review_text,
-            "rating": rating,
-            "price": price,
-            "combined_text": combined_text,
-        })
+        corpus.append(
+            {
+                "asin": asin,
+                "title": title,
+                "review_text": review_text,
+                "rating": rating,
+                "price": price,
+                "combined_text": combined_text,
+            }
+        )
 
     return corpus
 
 
-def build_corpus_from_parquet(reviews_df: pd.DataFrame, meta_df: pd.DataFrame) -> list[dict]:
+def build_corpus_from_parquet(
+    reviews_df: pd.DataFrame, meta_df: pd.DataFrame
+) -> list[dict]:
     """
     Same as build_corpus but takes dataframes instead of lists.
     Use this when loading from parquet files.
@@ -154,14 +164,16 @@ def build_corpus_from_parquet(reviews_df: pd.DataFrame, meta_df: pd.DataFrame) -
 
         combined_text = f"{title} {description} {features} {review_text}"
 
-        corpus.append({
-            "asin": asin,
-            "title": title,
-            "review_text": review_text,
-            "rating": rating,
-            "price": price,
-            "combined_text": combined_text,
-        })
+        corpus.append(
+            {
+                "asin": asin,
+                "title": title,
+                "review_text": review_text,
+                "rating": rating,
+                "price": price,
+                "combined_text": combined_text,
+            }
+        )
 
     return corpus
 

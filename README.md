@@ -35,8 +35,9 @@ Download the `All_Beauty.jsonl.gz` and `meta_All_Beauty.jsonl.gz` files from
 [Amazon Reviews 2023 Dataset](https://amazon-reviews-2023.github.io/) and place them in `data/raw/`.
 
 ### 5. Build indexes
-Run the exploratory data analysis (EDA) notebook first (`milestone1_exploration.ipynb`) to understand the data. Then, generate the indexes by running:
+Run the exploratory data analysis (EDA) notebook first (`milestone1_exploration.ipynb`) to understand the data. Then run the following in sequence:
 ```bash
+python src/prepare_data.py
 python src/bm25.py
 python src/semantic.py
 ```
