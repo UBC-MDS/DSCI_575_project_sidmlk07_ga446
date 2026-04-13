@@ -23,36 +23,36 @@
 
 ### Query 1: `retinol night cream` (Easy)
 **BM25 Top 5 Results:**
-1. MBA Renewing Retinol Serum, 1.7 fl. oz, 0.5% Retinol Hydrates & Brightens Skin's Appearance by Dimin
-2. Altaire Paris Anti Aging Intensive Youth Day Cream 1.7 Oz
+1. Altaire Paris Anti Aging Intensive Youth Day Cream 1.7 Oz
+2. MBA Renewing Retinol Serum, 1.7 fl. oz, 0.5% Retinol Hydrates & Brightens Skin's Appearance by Dimin
 3. Iryasa Night Indulge Cream - Natural Face Cream for Dry Skin - Vegan Anti Aging Night Cream for Wome
 4. Dr. Au Anti-Aging Face Oil Retinol Serum by Au Natural Skinfood - Promotes Youthful, Glowing Skin
-5. Origins High Potency Night-A-Mins Mineral-Enriched Moisture Cream 1.7oz, 50ml by Origins
+5. Iryasa Night Indulge Cream - Natural Face Cream for Dry Skin - Vegan Anti Aging Night Cream for Wome
 
 **Semantic Search Top 5 Results:**
 1. Ebanel 2.5% Retinol Serum for Face with Hyaluronic Acid, Peptide, Vitamin C, Pore Minimizer Skin Tig
 2. Iryasa Night Indulge Cream - Natural Face Cream for Dry Skin - Vegan Anti Aging Night Cream for Wome
 3. Iryasa Night Indulge Cream - Natural Face Cream for Dry Skin - Vegan Anti Aging Night Cream for Wome
-4. APIVITA Queen Bee Holistic Age Defense Night Cream 1.69 fl.oz. |Intensive Night Treatment That Speed
-5. MBA Renewing Retinol Serum, 1.7 fl. oz, 0.5% Retinol Hydrates & Brightens Skin's Appearance by Dimin
+4. MBA Renewing Retinol Serum, 1.7 fl. oz, 0.5% Retinol Hydrates & Brightens Skin's Appearance by Dimin
+5. APIVITA Queen Bee Holistic Age Defense Night Cream 1.69 fl.oz. |Intensive Night Treatment That Speed
 
 **Observations & Comparison:**
-* **Which method performs better?**
-They perform similarly, but both struggle slightly to find a single product that combines all three terms perfectly in the title. Both return highly relevant components (retinol serums and night creams).
+- **Which method performs better?**
+They perform similarly, but both struggle slightly to find a single product that combines all three terms perfectly in the title. Both return mainly relevant components (retinol serums and night creams).
 
-* **Are there cases where BM25 fails but semantic search succeeds?**
-BM25 failed on result #2 by returning a "Day Cream," simply because it keyword-matched "Cream". Semantic search avoided day creams, focusing strictly on night creams and serums.
+- **Are there cases where BM25 fails but semantic search succeeds?**
+BM25 failed on result #1 by returning a "Day Cream," simply because it keyword-matched "Cream". Semantic search avoided day creams, focusing strictly on night creams and serums.
 
-* **Are the top results actually useful for the user’s intent?**
+- **Are the top results actually useful for the user’s intent?**
 Mostly yes, both methods successfully identified the core active ingredient and the target application time.
 
 ### Query 2: `body wash to help with rough bumpy skin on my arms` (Medium)
 **BM25 Top 5 Results:**
 1. Argus Le Waterproof Electric Facial and Body Cleansing Brush Facial Massager Natural Face Cleanser f
-2. Hibiclens Antiseptic & Antimicrobial Skin Cleanser 32 Fl Oz (Pack of 2)
-3. Juicy Chemistry - Organic & 100% Natural Hydrating Face & Body Scrub for Women with Dry & Mature Ski
-4. Hylunia Hydrate Body Wash - Energizing Blend With Mango 8.5 oz
-5. MYFOOT Moisturizing Foot Wipe for After Foot Mask Peel or After Beach, Fresh Cleansing Wet Wipes Hel
+2. Salux Nylon Japanese Beauty Skin Bath Wash Cloth/towel (3) Blue Yellow and Pink
+3. MYFOOT Moisturizing Foot Wipe for After Foot Mask Peel or After Beach, Fresh Cleansing Wet Wipes Hel
+4. Charcoal Konjac Face Sponge 3 pk | Acne, Psoriasis, Bumpy Skin & Ingrown Hairs
+5. Way Of Will Sweet Orange Body Wash, Moisturizing Body Wash with Sweet Orange Essential Oil, Body Was
 
 **Semantic Search Top 5 Results:**
 1. Bath and Body Works 3 Pack Cocoshea Honey Softening Body Scrub 8 Oz.
@@ -62,22 +62,22 @@ Mostly yes, both methods successfully identified the core active ingredient and 
 5. Hemp Lotion for Dry Skin - Soothing Rose Flower & Aloe Hydrate Your Complexion - Non-Greasy, Vegan,
 
 **Observations & Comparison:**
-* **Which method performs better?**
-Semantic search did much better.
+- **Which method performs better?**
+Semantic search did much better at capturing the actual intent.
 
-* **Are there cases where BM25 fails but semantic search succeeds?**
-BM25 performed poorly, by focusing on exact keywords ("wash", "body", "skin" etc). It returned a facial cleansing brush, an antiseptic cleanser, and a foot wipe. Semantic search successfully decoded the underlying intent and matched rough/bumpy skin with exfoliation.
+- **Are there cases where BM25 fails but semantic search succeeds?**
+BM25 performed poorly by heavily weighting exact keywords ("wash", "body", "skin"). Because it lacks semantic understanding, it returned physical tools (a cleansing brush, a face sponge) and a foot wipe rather than a targeted treatment. Semantic search successfully decoded the underlying intent and matched the concept of "rough/bumpy skin" with exfoliating products.
 
-* **Are the top results actually useful for the user’s intent?**
-Semantic search's results are quite useful. A body scrub or exfoliating mitt is useful for a person with rough, bumpy skin. BM25's results are quite useless for this specific intent.
+- **Are the top results actually useful for the user’s intent?**
+Semantic search's results are highly useful. A body scrub or exfoliating mitt is exactly what a user with rough, bumpy skin needs. BM25's results are mostly unhelpful, though Result #4 managed to string match "bumpy skin".
 
 ### Query 3: `luxury skincare travel kit gift for mom under $50` (Complex)
 **BM25 Top 5 Results:**
 1. 50th Birthday Gifts for Women, 40th Birthday Gifts Women, 60th Birthday Gifts for Women, Gift Basket
 2. Frecia’s Allure Rose Quartz Face Roller Gua Sha Set – Brazilian Rose Quartz Gua Sha Stone Set with N
-3. Bath Bombs Gift Set, Bath Bomb Gift for Women with Rose Petals, Lavender Scent 5pc Handmade Bubble B
-4. Caudalie Favorites Set
-5. GERSHION Pastel Gel Nail Polish Set, 6 Colors Gel Polish Set, Soak Off UV Lamp Gel Polish Kit, Nude
+3. Caudalie Favorites Set
+4. Bath Bombs Gift Set, Bath Bomb Gift for Women with Rose Petals, Lavender Scent 5pc Handmade Bubble B
+5. Simple Pleasures 10-Piece Nail Polish Kit with Shimmering Nail Polish Shades, Glittery Toe Separator
 
 **Semantic Search Top 5 Results:**
 1. Hanhoo Red pomegranate 6pcs Skin Care Set (6pcs/set)
@@ -87,14 +87,14 @@ Semantic search's results are quite useful. A body scrub or exfoliating mitt is 
 5. Face Moisturizer by Disco for Men, Hydrating, Anti-Aging Formula with Vitamin C, All Natural and Par
 
 **Observations & Comparison:**
-* **Which method performs better?**
-BM25 did better, while semantic search was quite bad.
+- **Which method performs better?**
+BM25 did better, while semantic search drifted heavily.
 
-* **Are there cases where BM25 fails but semantic search succeeds?**
-Semantic search returned a makeup brush organizer, a blackhead mask, and a *men's* face moisturizer, completely ignoring the "mom" and "gift" intent. BM25 was able to at least get the "gift" and "mom/women" concepts.
+- **Are there cases where BM25 fails but semantic search succeeds?**
+Semantic search suffered from severe drift, returning a makeup brush organizer, a blackhead mask, and a *men's* face moisturizer, completely ignoring the "mom" and "gift" intent. BM25 was able to anchor to the "gift" and "women" concepts.
 
-* **Are the top results actually useful for the user’s intent?**
-Most aren't great results, apart from maybe the Caudalie one.
+- **Are the top results actually useful for the user’s intent?**
+Most aren't great results, apart from the Caudalie set (BM25 #3). Notably, neither method understood the numerical price constraint. BM25 actually matched the "50" token to "50th Birthday Gifts" rather than interpreting it as a price, proving that text based retrieval cannot handle numerical logic without metadata filtering.
 
 ### Query 4: `mineral face sunscreen` (Easy)
 **BM25 Top 5 Results:**
@@ -137,14 +137,14 @@ All the BM25 results are useful (all are sunscreen, even if not mineral), while 
 5. [Abib] Creme coating mask Tone-up solution 17g (5pcs)
 
 **Observations & Comparison:**
-* **Which method performs better?**
-BM25 did much better since it at least returned sunscreens. Not all outputs from semantic search are sunscreen.
+- **Which method performs better?**
+BM25 did much better since it at least returned functional sunscreens with SPF. 
 
-* **Are there cases where BM25 fails but semantic search succeeds?**
-No, semantic performed poorly.
+- **Are there cases where BM25 fails but semantic search succeeds?**
+No, semantic performed poorly. It returned standard moisturizers without SPF, and actively failed the negative constraint ("no white cast") by returning a "Tone-up solution" mask (Semantic #5) which explicitly whitens the skin.
 
-* **Are the top results actually useful for the user’s intent?**
-Although the exact intent isn't necessarily matched (since no mention of white cast), BM25 results are still somewhat relevant.
+- **Are the top results actually useful for the user’s intent?**
+Although the exact complex intent isn't perfectly satisfied by either, the BM25 results are safer and more relevant because they actually offer sun protection.
 
 ---
 
@@ -153,11 +153,11 @@ Although the exact intent isn't necessarily matched (since no mention of white c
 ### A. Strengths and Weaknesses
 **BM25:**
 * **Strengths:** Excellent for Easy/Keyword queries (e.g., `mineral face sunscreen`). It guarantees exact term overlap, ensuring the user gets exactly the category they typed. Even on complex queries, it anchors well to the core nouns.
-* **Weaknesses:** Fails entirely on Medium queries that use descriptive language or symptoms (e.g., searching for "rough bumpy skin" returns antiseptics instead of the necessary exfoliating scrubs). It is also blind to negative constraints.
+* **Weaknesses:** Fails entirely on Medium queries that use descriptive language or symptoms (e.g., searching for "rough bumpy skin" returns physical cleansing brushes and foot wipes instead of the necessary exfoliating body scrubs). It also misses negative constraints.
 
 **Semantic Search:**
-* **Strengths:** Does well on Medium queries by capturing the underlying intent. It successfully understood that a query about "rough bumpy skin" requires an exfoliating scrub or mitt, decoding the problem into a solution.
-* **Weaknesses:** Highly susceptible to severe *semantic drift*, sometimes even on simple queries. It can completely lose the core product category in favor of loosely related concepts (e.g., returning aloe gel instead of sunscreen, or a men's moisturizer for a "gift for mom"). It also blends constraints together rather than strictly enforcing them.
+* **Strengths:** Does well on Medium queries by capturing the underlying intent. It successfully understood that a query about "rough bumpy skin" requires an exfoliating scrub or mitt.
+* **Weaknesses:** Highly susceptible to *semantic drift*, sometimes even on simple queries. It can completely lose the core product category in favor of loosely related concepts (e.g., returning aloe gel instead of sunscreen, or a men's moisturizer for a "gift for mom"). It also blends constraints together rather than strictly enforcing them.
 
 ### B. Challenging Queries for Both Methods
 Both baseline methods struggle heavily with Complex queries that contain:
