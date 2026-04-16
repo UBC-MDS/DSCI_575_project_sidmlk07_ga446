@@ -42,8 +42,39 @@ python src/bm25.py
 python src/semantic.py
 ```
 
-### 6. Run the app
-Run the Streamlit app locally:
+### 6. Setup Local LLM (Milestone 2 Requirement)
+This application uses a local LLM via Ollama to power the Retrieval-Augmented Generation (RAG) pipeline.
+1. Download and install [Ollama](https://ollama.com/).
+2. Open your terminal and pull the Llama 3.2 model:
+
+```bash
+ollama pull llama3.2
+```
+
+3. Ensure the Ollama application is actively running in the background on your machine.
+
+**Step 6.1: Test the Local Server**
+Verify the model is installed and running correctly by chatting with it directly in your terminal:
+```bash
+ollama run llama3.2
+```
+*(Type `/bye` to exit the chat when you are done).*
+
+**Step 6.2: Test the Python Connection**
+Run the basic LLM generator script to ensure LangChain can successfully communicate with your local Ollama server (this tests the LLM in isolation):
+```bash
+python src/test_llm.py
+```
+
+**Step 6.3: Test the Hybrid RAG Pipeline**
+Finally, test the complete backend to ensure the LLM is properly reading from the BM25 and Semantic search indexes:
+```bash
+python src/hybrid_rag_pipeline.py
+```
+
+### 7. Run the app
+Launch the interactive Streamlit assistant. The app will use Hybrid Search (BM25 + Semantic) to retrieve relevant products and the local Llama 3.2 model to generate a grounded, conversational recommendation.
+
 ```bash
 streamlit run app/app.py
 ```
