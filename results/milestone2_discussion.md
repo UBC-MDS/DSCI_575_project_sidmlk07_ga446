@@ -24,3 +24,8 @@ To optimize our LLM Generator's output and eliminate hallucinations, we experime
 
 - *Prompt:* We removed the misleading examples and added a strict `NO OUTSIDE KNOWLEDGE` clause. We explicitly commanded it to state "Price not listed" if the metadata was missing, and added a rule to exclude products if reviews mentioned negative side effects (e.g., "drying").
 - *Result:* This prompt led to much better output. the LLM successfully identified negative constraints (warning the user that a product was "drying" for dry skin), it handled missing prices without guessing, and it strictly anchored its ingredient claims to the provided context block.
+
+**Variant 4: The Hybrid Retrieval Refinement (Final Production Prompt)**
+
+- *Prompt:* During our Step 3 Hybrid RAG testing, the model successfully found a product that matched "no white cast," but it failed the user's "mineral" constraint (recommending a chemical sunscreen instead). To fix this prioritization flaw, we updated Rule #5 to explicitly command: *"STRICT CONSTRAINTS: You must evaluate ALL adjectives in the user's query... If a product violates ANY of the requested constraints, you MUST NOT recommend it."*
+- *Result:* The LLM successfully corrected its behavior. It learned to strictly enforce all adjectives (like "mineral" vs. "chemical") as non-negotiable filters, rather than ignoring one constraint just to satisfy another. If a perfect match could not be found, it honestly admitted it, resulting in a perfectly constrained final output.
