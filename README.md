@@ -45,13 +45,12 @@ python src/semantic.py
 ### 6. Setup Local LLM (Milestone 2 Requirement)
 This application uses a local LLM via Ollama to power the Retrieval-Augmented Generation (RAG) pipeline.
 1. Download and install [Ollama](https://ollama.com/).
-2. Open your terminal and pull the Llama 3.2 model:
+2. **Crucial Step:** Open the Ollama application on your computer and make sure it is running in the background. You must do this at least once to install the command-line tools and start the background server. You should see the Ollama alpaca icon in your system menu bar.
+3. Open your terminal and pull the Llama 3.2 model:
 
 ```bash
 ollama pull llama3.2
 ```
-
-3. Ensure the Ollama application is actively running in the background on your machine.
 
 **Step 6.1: Test the Local Server**
 Verify the model is installed and running correctly by chatting with it directly in your terminal:
