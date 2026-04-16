@@ -75,3 +75,16 @@ Our application allows users to compare two distinct retrieval systems i.e. BM25
 ### 2. Semantic Search (Dense Vector Retrieval)
 - **File:** `src/semantic.py`
 - **Workflow:** Uses `sentence-transformers` (specifically `all-MiniLM-L6-v2`) to convert the `combined_text` of each document into dense vector embeddings. The embeddings are L2-normalized and indexed using **FAISS** (`IndexFlatIP`) for inner-product similarity search (mathematically equivalent to cosine similarity after normalization). User queries are embedded on the fly, normalized, and compared against the FAISS index to find the nearest semantic neighbors.
+
+## RAG Pipeline Workflow
+
+The flowchart below visualizes our LCEL LangChain RAG architecture:
+
+```mermaid
+graph TD
+    A[User Query] --> B(Retriever: semantic_search)
+    B -->|Returns Top-5 Dicts| C(Context Builder)
+    C -->|Formats string w/ ASINs| D{Prompt Template}
+    A -->|Passes Question| D
+    D -->|Combines Context & Query| E[LLM: Llama-3.2-3B]
+    E -->|Generates grounded response| F[Final Output String]
