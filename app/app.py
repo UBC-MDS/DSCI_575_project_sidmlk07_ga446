@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.utils import load_corpus_parquet, load_pickle
 from src.bm25 import bm25_search, load_bm25
 from src.semantic import semantic_search, load_semantic_artifacts
+from src.hybrid_rag_pipeline import rag_chain, hybrid_retrieve_docs
 from sentence_transformers import SentenceTransformer
 
 st.set_page_config(page_title="Amazon Product Search", page_icon="🔍", layout="wide")
@@ -68,29 +69,76 @@ def show_results(results: list[dict], label: str):
             st.divider()
 
 
-if query:
-    with st.spinner("Searching..."):
-        if method == "Both":
-            col_bm25, col_sem = st.columns(2)
+tab_rag, tab_search = st.tabs(
+    ["🤖 RAG Assistant (Milestone 2)", "🔍 Search Only (Milestone 1)"]
+)
 
-            with col_bm25:
-                results_bm25 = bm25_search(query, bm25, corpus, top_k=top_k)
-                show_results(results_bm25, "BM25 Results")
+with tab_rag:
+    if st.button("Generate AI Answer", type="primary") and query:
+        st.divider()
 
-            with col_sem:
-                results_sem = semantic_search(
-                    query, model, faiss_index, doc_ids, corpus, top_k=top_k
-                )
-                show_results(results_sem, "Semantic Results")
+        st.subheader("✨ AI Shopping Assistant")
+        with st.spinner("Reading reviews and generating answer..."):
+            ai_response = rag_chain.invoke(query)
+            st.info(ai_response)
 
-        else:
-            if method == "BM25":
-                results = bm25_search(query, bm25, corpus, top_k=top_k)
-                show_results(results, "BM25 Results")
-            elif method == "Semantic":
-                results = semantic_search(
-                    query, model, faiss_index, doc_ids, corpus, top_k=top_k
-                )
-                show_results(results, "Semantic Results")
-else:
-    st.info("Type a query above to get started.")
+        st.divider()
+
+        st.subheader("Source Documents (Hybrid Search)")
+        with st.spinner("Loading source details..."):
+            retrieved_docs = hybrid_retrieve_docs(query)
+
+            if not retrieved_docs:
+                st.warning("No products found.")
+            else:
+                for i, doc in enumerate(retrieved_docs, 1):
+                    asin = doc.get("parent_asin") or doc.get("asin", "N/A")
+                    title = doc.get("title", "No Title")
+                    rating = doc.get("rating", "N/A")
+
+                    price_val = doc.get("price")
+                    if price_val is None or (
+                        isinstance(price_val, float) and math.isnan(price_val)
+                    ):
+                        price_display = "Price not listed"
+                    else:
+                        price_display = f"${price_val}"
+
+                    raw_review = doc.get("review_text", "No review text available.")
+                    trunc_review = (
+                        raw_review[:250] + "..."
+                        if len(raw_review) > 250
+                        else raw_review
+                    )
+
+                    with st.expander(f"[{i}] {title[:80]}... | ⭐ {rating}/5"):
+                        st.caption(f"**ASIN:** {asin} | **Price:** {price_display}")
+                        st.markdown(f"**Review Snippet:** _{trunc_review}_")
+
+with tab_search:
+    if query:
+        with st.spinner("Searching..."):
+            if method == "Both":
+                col_bm25, col_sem = st.columns(2)
+
+                with col_bm25:
+                    results_bm25 = bm25_search(query, bm25, corpus, top_k=top_k)
+                    show_results(results_bm25, "BM25 Results")
+
+                with col_sem:
+                    results_sem = semantic_search(
+                        query, model, faiss_index, doc_ids, corpus, top_k=top_k
+                    )
+                    show_results(results_sem, "Semantic Results")
+
+            else:
+                if method == "BM25":
+                    results = bm25_search(query, bm25, corpus, top_k=top_k)
+                    show_results(results, "BM25 Results")
+                elif method == "Semantic":
+                    results = semantic_search(
+                        query, model, faiss_index, doc_ids, corpus, top_k=top_k
+                    )
+                    show_results(results, "Semantic Results")
+    else:
+        st.info("Type a query above to get started.")
