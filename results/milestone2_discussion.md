@@ -29,3 +29,30 @@ To optimize our LLM Generator's output and eliminate hallucinations, we experime
 
 - *Prompt:* During our Step 3 Hybrid RAG testing, the model successfully found a product that matched "no white cast," but it failed the user's "mineral" constraint (recommending a chemical sunscreen instead). To fix this prioritization flaw, we updated Rule #5 to explicitly command: *"STRICT CONSTRAINTS: You must evaluate ALL adjectives in the user's query... If a product violates ANY of the requested constraints, you MUST NOT recommend it."*
 - *Result:* The LLM successfully corrected its behavior. It learned to strictly enforce all adjectives (like "mineral" vs. "chemical") as non-negotiable filters, rather than ignoring one constraint just to satisfy another. If a perfect match could not be found, it honestly admitted it, resulting in a perfectly constrained final output.
+
+## Step 3: RAG Evaluation
+
+### 3.1 Manual / Qualitative Evaluation for Hybrid RAG Workflow
+
+**Evaluation Table**
+*Note: Evaluated using the Hybrid RAG pipeline (BM25 + Semantic via Reciprocal Rank Fusion) with Llama 3.2.*
+
+| Query | Accuracy | Completeness | Fluency | Brief Notes on Output |
+| :--- | :--- | :--- | :--- | :--- |
+| 1. `hydrating face moisturizer` (Easy) | Yes | Yes | Yes | *Successfully returned and summarized basic moisturizers.* |
+| 2. `product to keep my hair from getting frizzy in the rain` (Medium) | Yes | Yes | Yes | *Semantic search correctly mapped "rain" to humidity/anti-frizz products.* |
+| 3. `good gift for someone who loves doing their makeup` (Medium) | Yes | Yes | Yes | *Handled the conceptual nature of "gifting" well.* |
+| 4. `what is a good daily sunscreen for dark skin tones that leaves no white cast` (Complex) | Yes | Yes | Yes | *Strictly adhered to the 'no white cast' constraint from our prompt engineering.* |
+| 5. `what is the best fragrance-free moisturizer for sensitive skin under $30` (Complex) | Yes | Yes | Yes | *Found fragrance-free options, as the price was not listed, model mentioned it specifically which is good* |
+
+### 3.2 Evaluation Summary
+
+**a. Key Observations and Overall Performance:**
+The Hybrid RAG workflow performed exceptionally well at understanding both exact keywords and broad semantic concepts, successfully grounding its answers in the provided context. Llama 3.2 demonstrated high fluency, synthesizing multiple product reviews into readable, natural recommendations. Thanks to our rigorous prompt engineering (Variant 4), the model was highly accurate and generally refused to hallucinate information or ignore user constraints.
+
+**b. Limitations of the Hybrid RAG Workflow:**
+1. **Inefficient Metadata Filtering:** The current hybrid retriever relies entirely on text/vector similarity to find constraints like "under $30". If the text "$25" doesn't mathematically bubble to the top of the search scores, the LLM will never see the product, making hard constraints difficult to enforce.
+2. **Context Window / Top-K Bottleneck:** We are currently passing only the Top 5 documents to the LLM. If the absolute best product for a highly complex query was ranked #6 by the RRF algorithm, the LLM is completely blind to it and will confidently recommend a sub-optimal product.
+
+**c. Suggestions for Improving Workflow Performance:**
+To solve the metadata limitation, we could implement a "Self-Querying Retriever" that uses a lightweight LLM to extract hard filters (e.g., `price < 30`) from the user's prompt and applies them to the database *before* the semantic search occurs. Additionally, implementing an LLM-based Re-ranker (like Cohere) as a final step before the context builder could allow us to retrieve 20 documents, re-rank them for exact logical relevance, and pass the true Top 5 to Llama 3.2.

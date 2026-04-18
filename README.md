@@ -1,5 +1,24 @@
 # Smart Amazon Product Query Assistant
 
+## System Architecture & Workflows
+
+### Model Choice
+This application utilizes **Llama 3.2 (3B)** via Ollama as the core Large Language Model. This model was chosen because it runs efficiently on local hardware while providing excellent instruction-following capabilities, which is critical for enforcing strict RAG constraints (like price limits and avoiding hallucinations).
+
+### 1. Semantic RAG Workflow
+Our baseline RAG pipeline relies on dense vector embeddings. 
+* **Retriever:** We use `SentenceTransformers` to embed the user's query and perform a cosine similarity search against our product database using a `FAISS` vector index. 
+* **Generator:** The top retrieved product reviews and metadata are formatted into a strict context block. The LLM is prompted to answer the user's query using *only* this context, ensuring factual, grounded recommendations.
+
+### 2. Hybrid RAG Workflow (Production)
+To capture both broad concepts and exact keyword matches, our final production app uses a Hybrid Search pipeline.
+* **Retriever:** The user's query is simultaneously passed through our FAISS Semantic index and a BM25 keyword index. 
+* **Fusion:** We use **Reciprocal Rank Fusion (RRF)** to combine the results from both engines. Documents that rank highly in *both* systems are pushed to the top, mitigating the weaknesses of using either system in isolation.
+* **Generator:** The fused Top-K documents are parsed into our Context Builder and sent to Llama 3.2, which evaluates the exact constraints of the user's prompt against the retrieved product metadata.
+
+### Workflow Diagram
+*(Remember to insert your exported diagram image here, e.g., `![RAG Workflow Diagram](assets/workflow.png)`)*
+
 ## Overview
 A retrieval system for Amazon product reviews that allows users to search for products using both keyword based (BM25) and semantic (vector embedding) search methods.
 
