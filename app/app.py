@@ -12,7 +12,6 @@ from sentence_transformers import SentenceTransformer
 
 st.set_page_config(page_title="Amazon Product Search", page_icon="🔍", layout="wide")
 st.title("🔍 Amazon Product Search")
-st.caption("Milestone 1 — BM25 & Semantic Retrieval")
 
 
 @st.cache_resource
@@ -69,15 +68,13 @@ def show_results(results: list[dict], label: str):
             st.divider()
 
 
-tab_rag, tab_search = st.tabs(
-    ["🤖 RAG Assistant (Milestone 2)", "🔍 Search Only (Milestone 1)"]
-)
+tab_rag, tab_search = st.tabs(["RAG Assistant", "Search Only"])
 
 with tab_rag:
     if st.button("Generate AI Answer", type="primary") and query:
         st.divider()
 
-        st.subheader("✨ AI Shopping Assistant")
+        st.subheader("AI Shopping Assistant")
         with st.spinner("Reading reviews and generating answer..."):
             ai_response = rag_chain.invoke(query)
             st.info(ai_response)
@@ -111,7 +108,7 @@ with tab_rag:
                         else raw_review
                     )
 
-                    with st.expander(f"[{i}] {title[:80]}... | ⭐ {rating}/5"):
+                    with st.expander(f"[{i}] {title[:80]}... | Rating: {rating}/5"):
                         st.caption(f"**ASIN:** {asin} | **Price:** {price_display}")
                         st.markdown(f"**Review Snippet:** _{trunc_review}_")
 
