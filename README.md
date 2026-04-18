@@ -28,6 +28,7 @@ graph TD
     A -->|Passes Question| D
     D -->|Combines Context & Query| E[LLM: Llama-3.2-3B]
     E -->|Generates grounded response| F[Final Output String]
+```
 
 ## Overview
 A retrieval system for Amazon product reviews that allows users to search for products using both keyword based (BM25) and semantic (vector embedding) search methods.
