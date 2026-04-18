@@ -16,8 +16,18 @@ To capture both broad concepts and exact keyword matches, our final production a
 * **Fusion:** We use **Reciprocal Rank Fusion (RRF)** to combine the results from both engines. Documents that rank highly in *both* systems are pushed to the top, mitigating the weaknesses of using either system in isolation.
 * **Generator:** The fused Top-K documents are parsed into our Context Builder and sent to Llama 3.2, which evaluates the exact constraints of the user's prompt against the retrieved product metadata.
 
-### Workflow Diagram
-*(Remember to insert your exported diagram image here, e.g., `![RAG Workflow Diagram](assets/workflow.png)`)*
+## RAG Pipeline Workflow
+
+The flowchart below visualizes our LCEL LangChain RAG architecture:
+
+```mermaid
+graph TD
+    A[User Query] --> B(Retriever: semantic_search)
+    B -->|Returns Top-5 Dicts| C(Context Builder)
+    C -->|Formats string w/ ASINs| D{Prompt Template}
+    A -->|Passes Question| D
+    D -->|Combines Context & Query| E[LLM: Llama-3.2-3B]
+    E -->|Generates grounded response| F[Final Output String]
 
 ## Overview
 A retrieval system for Amazon product reviews that allows users to search for products using both keyword based (BM25) and semantic (vector embedding) search methods.
@@ -124,16 +134,3 @@ Our application allows users to compare two distinct retrieval systems i.e. BM25
 ### 2. Semantic Search (Dense Vector Retrieval)
 - **File:** `src/semantic.py`
 - **Workflow:** Uses `sentence-transformers` (specifically `all-MiniLM-L6-v2`) to convert the `combined_text` of each document into dense vector embeddings. The embeddings are L2-normalized and indexed using **FAISS** (`IndexFlatIP`) for inner-product similarity search (mathematically equivalent to cosine similarity after normalization). User queries are embedded on the fly, normalized, and compared against the FAISS index to find the nearest semantic neighbors.
-
-## RAG Pipeline Workflow
-
-The flowchart below visualizes our LCEL LangChain RAG architecture:
-
-```mermaid
-graph TD
-    A[User Query] --> B(Retriever: semantic_search)
-    B -->|Returns Top-5 Dicts| C(Context Builder)
-    C -->|Formats string w/ ASINs| D{Prompt Template}
-    A -->|Passes Question| D
-    D -->|Combines Context & Query| E[LLM: Llama-3.2-3B]
-    E -->|Generates grounded response| F[Final Output String]
