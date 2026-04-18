@@ -20,14 +20,14 @@ To optimize our LLM Generator's output and eliminate hallucinations, we experime
 - *Prompt:* We added rules telling it not to guess prices, and included an example constraint: *(e.g., price limits like "under $30")*.
 - *Result:* The model stopped guessing prices, but fell into two new traps. First, it read the "$30" example in the system prompt and hallucinated that the user had a strict budget, even when the user didn't mention price. Second, it hallucinated ingredients (like "aloe vera" and "chamomile") that were not in the review context, drawing on its memory to make the product sound better.
 
-**Variant 3: The Final Factual Prompt (Chosen Prompt)**
+**Variant 3: The Strict Factual Prompt (Semantic Baseline)**
 
 - *Prompt:* We removed the misleading examples and added a strict `NO OUTSIDE KNOWLEDGE` clause. We explicitly commanded it to state "Price not listed" if the metadata was missing, and added a rule to exclude products if reviews mentioned negative side effects (e.g., "drying").
 - *Result:* This prompt led to much better output. the LLM successfully identified negative constraints (warning the user that a product was "drying" for dry skin), it handled missing prices without guessing, and it strictly anchored its ingredient claims to the provided context block.
 
-**Variant 4: The Hybrid Retrieval Refinement (Final Production Prompt)**
+**Variant 4: The Hybrid Refinement (Final Production Prompt)**
 
-- *Prompt:* During our Step 3 Hybrid RAG testing, the model successfully found a product that matched "no white cast," but it failed the user's "mineral" constraint (recommending a chemical sunscreen instead). To fix this prioritization flaw, we updated Rule #5 to explicitly command: *"STRICT CONSTRAINTS: You must evaluate ALL adjectives in the user's query... If a product violates ANY of the requested constraints, you MUST NOT recommend it."*
+- *Prompt:* During our initial Hybrid RAG testing, the model successfully found a product that matched "no white cast," but it failed the user's "mineral" constraint (recommending a chemical sunscreen instead). To fix this prioritization flaw, we updated Rule #5 to explicitly command: *"STRICT CONSTRAINTS: You must evaluate ALL adjectives in the user's query... If a product violates ANY of the requested constraints, you MUST NOT recommend it."*
 - *Result:* The LLM successfully corrected its behavior. It learned to strictly enforce all adjectives (like "mineral" vs. "chemical") as non-negotiable filters, rather than ignoring one constraint just to satisfy another. If a perfect match could not be found, it honestly admitted it, resulting in a perfectly constrained final output.
 
 ## Step 3: RAG Evaluation
@@ -48,11 +48,14 @@ To optimize our LLM Generator's output and eliminate hallucinations, we experime
 ### 3.2 Evaluation Summary
 
 **a. Key Observations and Overall Performance:**
+
 The Hybrid RAG workflow performed exceptionally well at understanding both exact keywords and broad semantic concepts, successfully grounding its answers in the provided context. Llama 3.2 demonstrated high fluency, synthesizing multiple product reviews into readable, natural recommendations. Thanks to our rigorous prompt engineering (Variant 4), the model was highly accurate and generally refused to hallucinate information or ignore user constraints.
 
 **b. Limitations of the Hybrid RAG Workflow:**
+
 1. **Inefficient Metadata Filtering:** The current hybrid retriever relies entirely on text/vector similarity to find constraints like "under $30". If the text "$25" doesn't mathematically bubble to the top of the search scores, the LLM will never see the product, making hard constraints difficult to enforce.
 2. **Context Window / Top-K Bottleneck:** We are currently passing only the Top 5 documents to the LLM. If the absolute best product for a highly complex query was ranked #6 by the RRF algorithm, the LLM is completely blind to it and will confidently recommend a sub-optimal product.
 
 **c. Suggestions for Improving Workflow Performance:**
-To solve the metadata limitation, we could implement a "Self-Querying Retriever" that uses a lightweight LLM to extract hard filters (e.g., `price < 30`) from the user's prompt and applies them to the database *before* the semantic search occurs. Additionally, implementing an LLM-based Re-ranker (like Cohere) as a final step before the context builder could allow us to retrieve 20 documents, re-rank them for exact logical relevance, and pass the true Top 5 to Llama 3.2.
+
+To solve the metadata limitation, we could add explicit UI filters to our Streamlit app (e.g., a "Maximum Price" slider or a "Brand" dropdown). We could filter the underlying dataset for these hard constraints *before* passing the remaining products to the vector search, guaranteeing the LLM only sees items within budget. To solve the top-k bottleneck, we could simply increase our retrieval limit from 5 to 10 or 15 documents. While this would slightly increase the LLM's processing time, it gives the model a much broader pool of context to pull the perfect recommendation from.
