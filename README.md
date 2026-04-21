@@ -21,14 +21,14 @@ This application utilizes **Llama 3.2 (3B)** via Ollama as the core Large Langua
 
 Our baseline RAG pipeline relies on dense vector embeddings.
 
-- **Retriever:** We use `SentenceTransformers` to embed the user's query and perform a cosine similarity search against our product database using a `FAISS` vector index. 
+- **Retriever:** We use `SentenceTransformers` to embed the user's query and perform a cosine similarity search against our product database using a `FAISS` vector index.
 - **Generator:** The top retrieved product reviews and metadata are formatted into a strict context block. The LLM is prompted to answer the user's query using *only* this context, ensuring factual, grounded recommendations.
 
 ### 2. Hybrid RAG Workflow (Production)
 
 To capture both broad concepts and exact keyword matches, our final production app uses a Hybrid Search pipeline.
 
-- **Retriever:** The user's query is simultaneously passed through our FAISS Semantic index and a BM25 keyword index. 
+- **Retriever:** The user's query is simultaneously passed through our FAISS Semantic index and a BM25 keyword index.
 - **Fusion:** We use **Reciprocal Rank Fusion (RRF)** to combine the results from both engines. Documents that rank highly in *both* systems are pushed to the top, mitigating the weaknesses of using either system in isolation.
 - **Generator:** The fused Top-K documents are parsed into our Context Builder and sent to Llama 3.2, which evaluates the exact constraints of the user's prompt against the retrieved product metadata.
 
@@ -108,6 +108,7 @@ Verify the model is installed and running correctly by chatting with it directly
 ```bash
 ollama run llama3.2
 ```
+
 *(Type `/bye` to exit the chat when you are done).*
 
 **Step 6.2: Test the Python Connection**
@@ -132,6 +133,32 @@ Launch the interactive Streamlit assistant. The app will use Hybrid Search (BM25
 streamlit run app/app.py
 ```
 
+## Usage Examples & Expected Output
+
+Once the Streamlit app is running, you can explore the different retrieval methods. The UI is split into two main tabs.
+
+### 1. Search Only
+
+This tab allows you to test out our baseline search algorithms. It returns the **Top 5** (although this can be changed) product matches, displaying the Title, Rating, Price, and a small review snippet.
+
+- **BM25 Mode (Keyword Search):** Best for exact terminology.
+  - *Try querying:* `salicylic acid face wash`
+  - *Expected Output:* The system will strictly return products where those exact words appear frequently in the title or reviews.
+- **Semantic Mode (Vector Search):** Best for conceptual matching.
+  - *Try querying:* `product to keep my hair from getting frizzy in the rain`
+  - *Expected Output:* Even if the word "rain" isn't in the product description, FAISS will return humidity control and anti frizz serums because they share the same dense vector space.
+
+### 2. RAG Assistant
+
+This tab automatically runs a **Hybrid Search (BM25 + Semantic via Reciprocal Rank Fusion)** in the background to capture the best of both worlds, and then passes the merged Top 5 results to the local Llama 3.2 model.
+
+- **The Prompt:** Try a complex query with strict negative constraints:
+  > *"What is a good daily sunscreen for dark skin tones that leaves no white cast under $30?"*
+
+- **Expected Output Structure:**
+    1. **The AI Answer:** The LLM will evaluate the Top 5 hybrid results, automatically filter out any sunscreens that cost more than $30 or cause a "white cast," and write a conversational recommendation based *only* on the surviving products.
+    2. **Source Attribution:** Below the generated answer, you will see a list of numbered drop-down expanders (e.g., `[1]`, `[2]`). These represent the exact underlying Amazon products the LLM used to form its answer, allowing you to manually verify the ASIN, price, and raw review data.
+
 ## Dataset & Data Processing
 
 **NOTE:** Due to time and memory constraints when computing dense vector embeddings, we limited the processed corpus to a subset of 5,000 records (configurable via `MAX_REVIEWS` in `prepare_data.py`)
@@ -149,7 +176,6 @@ To safely handle the large files and prepare the data for retrieval, we execute 
 3. **Text Normalization:** The combined text is converted to lowercase to ensure case-insensitive matching.
 4. **Punctuation Removal:** Special characters and punctuation are stripped using regular expressions.
 5. **Stopword Removal:** Common English stopwords are filtered out using the NLTK library to reduce noise for the BM25 index and prevent common words (like "for" or "the") from skewing results.
-
 
 ## Retrieval Methods
 
