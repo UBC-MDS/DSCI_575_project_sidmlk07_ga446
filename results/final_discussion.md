@@ -22,15 +22,20 @@
 - Description of the feature
 - Key results or examples
   
-## Step 3: Improve Documentation and Code Quality
+## Improved Documentation and Code Quality
 
 ### Documentation Update
 
-- Summary of `README` improvements
+We updated the `README.md` and included:
+
+- **Usage Examples & Expected Output:** Created a dedicated section providing specific test queries (Easy, Medium, Complex) so users can test the differences between the BM25, Semantic, and AI Assistant modes.
 
 ### Code Quality Changes
 
-- Summary of cleanups
+We updated the codebase and made improvements to ensure it is robust, readable, and platform agnostic:
+
+- **Docstrings:** Added descriptive docstrings to all functions across the various Python files in the `src` directory.
+- **No Hardcoded Paths:** We checked all the Python files to ensure that none of them are using any hardcoded paths.
 
 ## Cloud Deployment Plan
 
