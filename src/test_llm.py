@@ -25,6 +25,10 @@ Answer:
 
 
 def test_llm_generation(user_question: str, dummy_context: str):
+    """
+    Generates and returns an LLM response using a predefined
+    LangChain pipeline given a question and dummy context.
+    """
     chain = prompt | llm | StrOutputParser()
 
     response = chain.invoke({"context": dummy_context, "input": user_question})

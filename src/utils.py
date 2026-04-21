@@ -14,6 +14,10 @@ ENGLISH_STOPWORDS = set(stopwords.words("english"))
 
 # from lecture notes
 def simple_tokenize(text):
+    """
+    Tokenizes text into a list of lowercase,
+    punctuation free words excluding English stopwords.
+    """
     text = text.lower()
     text = re.sub(r"[^a-z0-9\s-]", "", text)
     words = text.split()
@@ -194,6 +198,10 @@ def load_corpus_parquet(path: str) -> tuple[pd.DataFrame, list[dict]]:
 
 
 def save_pickle(obj, path):
+    """
+    Serializes and saves a Python object to the specified path,
+    creating parent directories if needed.
+    """
     Path(str(path)).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "wb") as f:
         pickle.dump(obj, f)
@@ -201,5 +209,9 @@ def save_pickle(obj, path):
 
 
 def load_pickle(path):
+    """
+    Deserializes and returns a Python object from
+    the specified pickle file path.
+    """
     with open(path, "rb") as f:
         return pickle.load(f)
