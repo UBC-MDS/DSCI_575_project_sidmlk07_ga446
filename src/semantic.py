@@ -12,27 +12,46 @@ MODEL_NAME = "all-MiniLM-L6-v2"
 
 def build_semantic_index(corpus: list[dict], model_name: str = MODEL_NAME):
     """
-    Encode all documents with sentence transformers (all-MiniLM-L6-v2)
-    and build a FAISS index for fast similarity search.
-    Uses IndexFlatIP (inner product) with L2-normalized vectors,
-    equivalent to cosine similarity.
+    Encode all documents with sentence-transformers and build a FAISS index.
+    
+    Scalability decisions:
+    - Batched encoding (batch_size=256) avoids memory overflow at 100k+ docs
+    - IndexIVFFlat with nlist=256 clusters for fast approximate search at scale
+      (exact IndexFlatIP becomes too slow beyond ~50k vectors)
+    - Falls back to IndexFlatIP for small corpora (<10k docs) where IVF overhead
+      isn't worth it
     """
     print(f"Loading model: {model_name}")
     model = SentenceTransformer(model_name)
 
     texts = [doc["combined_text"] for doc in corpus]
-    print(f"Encoding {len(texts)} documents...")
-    embeddings = model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
+    n = len(texts)
+    print(f"Encoding {n} documents in batches...")
 
+    embeddings = model.encode(
+        texts,
+        batch_size=256,
+        show_progress_bar=True,
+        convert_to_numpy=True,
+    )
     faiss.normalize_L2(embeddings)
 
     dim = embeddings.shape[1]
-    index = faiss.IndexFlatIP(dim)
-    index.add(embeddings)
+
+    if n >= 10_000:
+        nlist = 256
+        quantizer = faiss.IndexFlatIP(dim)
+        index = faiss.IndexIVFFlat(quantizer, dim, nlist, faiss.METRIC_INNER_PRODUCT)
+        print(f"Training IVFFlat index (nlist={nlist})...")
+        index.train(embeddings)
+        index.add(embeddings)
+        index.nprobe = 32
+    else:
+        index = faiss.IndexFlatIP(dim)
+        index.add(embeddings)
 
     print(f"FAISS index built — {index.ntotal} vectors (dim={dim})")
     return model, index
-
 
 def save_semantic_artifacts(
     index: faiss.Index,
@@ -40,9 +59,7 @@ def save_semantic_artifacts(
     model_name: str,
     artifacts_dir: str
 ):
-    """
-    Save FAISS index, doc_ids mapping, and config separately.
-    """
+    """Save FAISS index, doc_ids mapping, and config."""
     artifacts_dir = Path(artifacts_dir)
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
@@ -51,7 +68,6 @@ def save_semantic_artifacts(
 
     doc_ids = np.arange(len(corpus))
     np.save(str(artifacts_dir / "doc_ids.npy"), doc_ids)
-    print(f"doc_ids saved to {artifacts_dir / 'doc_ids.npy'}")
 
     config = {
         "model_name": model_name,
@@ -59,7 +75,10 @@ def save_semantic_artifacts(
         "combined_field": "combined_text",
         "num_documents": len(corpus),
         "embedding_dim": index.d,
-        "similarity": "cosine (IndexFlatIP + L2 norm)"
+        "similarity": "cosine (IndexFlatIP + L2 norm)" if len(corpus) < 10_000
+                      else "cosine approx (IndexIVFFlat nlist=256 nprobe=32)",
+        "index_type": "IndexFlatIP" if len(corpus) < 10_000 else "IndexIVFFlat",
+        "nprobe": 32 if len(corpus) >= 10_000 else None,
     }
     with open(artifacts_dir / "config.json", "w") as f:
         json.dump(config, f, indent=2)
@@ -73,6 +92,8 @@ def load_semantic_artifacts(artifacts_dir: str):
     doc_ids = np.load(str(artifacts_dir / "doc_ids.npy"))
     with open(artifacts_dir / "config.json") as f:
         config = json.load(f)
+    if config.get("nprobe") and hasattr(index, "nprobe"):
+        index.nprobe = config["nprobe"]
     return index, doc_ids, config
 
 
@@ -87,22 +108,35 @@ def semantic_search(
     """
     Semantic search using FAISS index.
     1. Embed and normalize query
-    2. Search FAISS for top_k nearest vectors
-    3. Use doc_ids to look up original corpus rows
-    4. Return results with scores
+    2. Search FAISS for top_k nearest vectors (fetch more to account for dedup)
+    3. Deduplicate by parent_asin, keep highest scoring review per product
+    4. Return top_k unique products sorted by score
     """
     query_embedding = model.encode([query], convert_to_numpy=True)
     faiss.normalize_L2(query_embedding)
 
-    scores, indices = index.search(query_embedding, top_k)
+    scores, indices = index.search(query_embedding, top_k * 10)
 
+    seen_asins = set()
     results = []
-    for rank, (score, idx) in enumerate(zip(scores[0], indices[0]), start=1):
-        corpus_idx = doc_ids[idx]         
+    rank = 1
+
+    for score, idx in zip(scores[0], indices[0]):
+        corpus_idx = doc_ids[idx]
         doc = corpus[corpus_idx].copy()
+        asin = doc.get("asin", "") or doc.get("parent_asin", "")
+
+        if asin and asin in seen_asins:
+            continue
+
+        seen_asins.add(asin)
         doc["score"] = float(score)
         doc["rank"] = rank
         results.append(doc)
+        rank += 1
+
+        if len(results) >= top_k:
+            break
 
     return results
 

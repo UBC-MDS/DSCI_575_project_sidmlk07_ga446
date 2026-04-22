@@ -14,6 +14,10 @@ ENGLISH_STOPWORDS = set(stopwords.words("english"))
 
 # from lecture notes
 def simple_tokenize(text):
+    """
+    Tokenizes text into a list of lowercase,
+    punctuation free words excluding English stopwords.
+    """
     text = text.lower()
     text = re.sub(r"[^a-z0-9\s-]", "", text)
     words = text.split()
@@ -134,46 +138,49 @@ def build_corpus_from_parquet(
     reviews_df: pd.DataFrame, meta_df: pd.DataFrame
 ) -> list[dict]:
     """
-    Same as build_corpus but takes dataframes instead of lists.
-    Use this when loading from parquet files.
+    Merge reviews and metadata into a corpus at scale.
+    Uses vectorized pandas merge instead of iterrows() for performance.
+    Handles 100k+ records efficiently.
     """
-    meta_lookup = {}
-    for _, m in meta_df.iterrows():
-        asin = m.get("parent_asin", "")
-        if asin:
-            meta_lookup[asin] = m.to_dict()
+    # Normalize list fields to strings before merge
+    def flatten(val):
+        if isinstance(val, list):
+            return " ".join(str(v) for v in val if v)
+        return str(val) if pd.notna(val) else ""
 
-    corpus = []
-    for _, review in reviews_df.iterrows():
-        asin = review.get("parent_asin", "")
-        meta = meta_lookup.get(asin, {})
+    meta_df = meta_df.copy()
+    meta_df["description"] = meta_df["description"].apply(flatten)
+    meta_df["features"] = meta_df["features"].apply(flatten)
+    meta_df["title"] = meta_df["title"].fillna("")
+    meta_df["price"] = meta_df.get("price", pd.Series(dtype=object))
 
-        title = meta.get("title", "")
+    # Keep one metadata row per parent_asin
+    meta_dedup = meta_df.drop_duplicates(subset="parent_asin")
 
-        description = meta.get("description", "")
-        if isinstance(description, list):
-            description = " ".join(description)
+    # Merge reviews with metadata on parent_asin
+    merged = reviews_df.merge(
+        meta_dedup[["parent_asin", "title", "description", "features", "price"]],
+        on="parent_asin",
+        how="left",
+    )
 
-        features = meta.get("features", "")
-        if isinstance(features, list):
-            features = " ".join(features)
+    merged["title"] = merged["title"].fillna("")
+    merged["description"] = merged["description"].fillna("")
+    merged["features"] = merged["features"].fillna("")
+    merged["review_text"] = merged["text"].fillna("")
+    merged["rating"] = merged["rating"]
+    merged["price"] = merged["price"] if "price" in merged.columns else None
 
-        review_text = review.get("text", "")
-        rating = review.get("rating", None)
-        price = meta.get("price", None)
+    merged["combined_text"] = (
+        merged["title"] + " "
+        + merged["description"] + " "
+        + merged["features"] + " "
+        + merged["review_text"]
+    ).str.strip()
 
-        combined_text = f"{title} {description} {features} {review_text}"
-
-        corpus.append(
-            {
-                "asin": asin,
-                "title": title,
-                "review_text": review_text,
-                "rating": rating,
-                "price": price,
-                "combined_text": combined_text,
-            }
-        )
+    corpus = merged[
+        ["parent_asin", "title", "review_text", "rating", "price", "combined_text"]
+    ].rename(columns={"parent_asin": "asin"}).to_dict(orient="records")
 
     return corpus
 
@@ -194,6 +201,10 @@ def load_corpus_parquet(path: str) -> tuple[pd.DataFrame, list[dict]]:
 
 
 def save_pickle(obj, path):
+    """
+    Serializes and saves a Python object to the specified path,
+    creating parent directories if needed.
+    """
     Path(str(path)).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "wb") as f:
         pickle.dump(obj, f)
@@ -201,5 +212,9 @@ def save_pickle(obj, path):
 
 
 def load_pickle(path):
+    """
+    Deserializes and returns a Python object from
+    the specified pickle file path.
+    """
     with open(path, "rb") as f:
         return pickle.load(f)

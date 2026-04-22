@@ -15,20 +15,20 @@ The Smart Amazon Product Query Assistant is an interactive AI shopping tool buil
 
 ### Model Choice
 
-This application utilizes **Llama 3.2 (3B)** via Ollama as the core Large Language Model. This model was chosen because it runs efficiently on local hardware while providing excellent instruction-following capabilities, which is critical for enforcing strict RAG constraints (like price limits and avoiding hallucinations).
+This application utilizes **Llama 3.2 (3B)** via Ollama as the core Large Language Model. This model was chosen because it runs efficiently on local hardware while providing excellent instruction-following capabilities, which is critical for enforcing strict RAG constraints (like price limits and avoiding hallucinations). During final evaluation, we also compared it against **Phi-4-mini (3.8B, Microsoft)**. See `results/final_discussion.md` for the full comparison.
 
 ### 1. Semantic RAG Workflow
 
 Our baseline RAG pipeline relies on dense vector embeddings.
 
-- **Retriever:** We use `SentenceTransformers` to embed the user's query and perform a cosine similarity search against our product database using a `FAISS` vector index. 
+- **Retriever:** We use `SentenceTransformers` to embed the user's query and perform a cosine similarity search against our product database using a `FAISS` vector index.
 - **Generator:** The top retrieved product reviews and metadata are formatted into a strict context block. The LLM is prompted to answer the user's query using *only* this context, ensuring factual, grounded recommendations.
 
 ### 2. Hybrid RAG Workflow (Production)
 
 To capture both broad concepts and exact keyword matches, our final production app uses a Hybrid Search pipeline.
 
-- **Retriever:** The user's query is simultaneously passed through our FAISS Semantic index and a BM25 keyword index. 
+- **Retriever:** The user's query is simultaneously passed through our FAISS Semantic index and a BM25 keyword index.
 - **Fusion:** We use **Reciprocal Rank Fusion (RRF)** to combine the results from both engines. Documents that rank highly in *both* systems are pushed to the top, mitigating the weaknesses of using either system in isolation.
 - **Generator:** The fused Top-K documents are parsed into our Context Builder and sent to Llama 3.2, which evaluates the exact constraints of the user's prompt against the retrieved product metadata.
 
@@ -90,16 +90,22 @@ python src/bm25.py
 python src/semantic.py
 ```
 
+> **Note:** The full All_Beauty dataset contains 701,528 reviews. The semantic
+> encoding step (`python src/semantic.py`) takes approximately **30 minutes** on
+> a MacBook Pro M4. BM25 index building takes under 1 minute. Both indexes are
+> saved to disk and only need to be built once.
+
 ### 6. Setup Local LLM (Milestone 2 Requirement)
 
 This application uses a local LLM via Ollama to power the Retrieval-Augmented Generation (RAG) pipeline.
 
 1. Download and install [Ollama](https://ollama.com/).
 2. **Crucial Step:** Open the Ollama application on your computer and make sure it is running in the background. You must do this at least once to install the command-line tools and start the background server. You should see the Ollama alpaca icon in your system menu bar.
-3. Open your terminal and pull the Llama 3.2 model:
+3. Open your terminal and pull the required models:
 
 ```bash
-ollama pull llama3.2
+ollama pull llama3.2   # production model (used by the app)
+ollama pull phi4-mini  # used for comparison
 ```
 
 **Step 6.1: Test the Local Server**
@@ -108,6 +114,7 @@ Verify the model is installed and running correctly by chatting with it directly
 ```bash
 ollama run llama3.2
 ```
+
 *(Type `/bye` to exit the chat when you are done).*
 
 **Step 6.2: Test the Python Connection**
@@ -132,11 +139,36 @@ Launch the interactive Streamlit assistant. The app will use Hybrid Search (BM25
 streamlit run app/app.py
 ```
 
+## Usage Examples & Expected Output
+
+Once the Streamlit app is running, you can explore the different retrieval methods. The UI is split into two main tabs.
+
+### 1. Search Only
+
+This tab allows you to test out our baseline search algorithms. It returns the **Top 5** (although this can be changed) product matches, displaying the Title, Rating, Price, and a small review snippet.
+
+- **BM25 Mode (Keyword Search):** Best for exact terminology.
+  - *Try querying:* `salicylic acid face wash`
+  - *Expected Output:* The system will strictly return products where those exact words appear frequently in the title or reviews.
+- **Semantic Mode (Vector Search):** Best for conceptual matching.
+  - *Try querying:* `product to keep my hair from getting frizzy in the rain`
+  - *Expected Output:* Even if the word "rain" isn't in the product description, FAISS will return humidity control and anti frizz serums because they share the same dense vector space.
+
+### 2. RAG Assistant
+
+This tab automatically runs a **Hybrid Search (BM25 + Semantic via Reciprocal Rank Fusion)** in the background to capture the best of both worlds, and then passes the merged Top 5 results to the local Llama 3.2 model.
+
+- **The Prompt:** Try a complex query with strict negative constraints:
+  > *"What is a good daily sunscreen for dark skin tones that leaves no white cast under $30?"*
+
+- **Expected Output Structure:**
+    1. **The AI Answer:** The LLM will evaluate the Top 5 hybrid results, automatically filter out any sunscreens that cost more than $30 or cause a "white cast," and write a conversational recommendation based *only* on the surviving products.
+    2. **Source Attribution:** Below the generated answer, you will see a list of numbered drop-down expanders (e.g., `[1]`, `[2]`). These represent the exact underlying Amazon products the LLM used to form its answer, allowing you to manually verify the ASIN, price, and raw review data.
+
 ## Dataset & Data Processing
 
-**NOTE:** Due to time and memory constraints when computing dense vector embeddings, we limited the processed corpus to a subset of 5,000 records (configurable via `MAX_REVIEWS` in `prepare_data.py`)
-
-**Source:** Amazon Reviews 2023 (All Beauty category).
+**Source:** Amazon Reviews 2023 (All Beauty category) — **701,528 reviews across
+112,565 unique products** (~6.2 reviews per product on average).
 
 - **Reviews file:** Contains user ratings, review text, timestamps, and product IDs.
 - **Metadata file:** Contains product titles, descriptions, features, and pricing.
@@ -145,11 +177,10 @@ streamlit run app/app.py
 To safely handle the large files and prepare the data for retrieval, we execute the following pipeline:
 
 1. **Incremental Parquet Conversion:** Raw `.jsonl.gz` files are loaded and processed incrementally in chunks (to prevent memory crashes) and converted into `.parquet` files (`reviews.parquet`, `metadata.parquet`).
-2. **Field Merging:** We join the reviews and metadata dataframes using `parent_asin` and combine the `title`, `description`, `features`, and `review_text` into a single `combined_text` field for each document. Missing fields are safely imputed with empty strings.
+2. **Field Merging:** We join the reviews and metadata dataframes using `parent_asin` via a vectorized pandas `merge()` and combine the `title`, `description`, `features`, and `review_text` into a single `combined_text` field for each document. Missing fields are safely imputed with empty strings.
 3. **Text Normalization:** The combined text is converted to lowercase to ensure case-insensitive matching.
 4. **Punctuation Removal:** Special characters and punctuation are stripped using regular expressions.
 5. **Stopword Removal:** Common English stopwords are filtered out using the NLTK library to reduce noise for the BM25 index and prevent common words (like "for" or "the") from skewing results.
-
 
 ## Retrieval Methods
 
@@ -163,4 +194,13 @@ Our application allows users to compare two distinct retrieval systems i.e. BM25
 ### 2. Semantic Search (Dense Vector Retrieval)
 
 - **File:** `src/semantic.py`
-- **Workflow:** Uses `sentence-transformers` (specifically `all-MiniLM-L6-v2`) to convert the `combined_text` of each document into dense vector embeddings. The embeddings are L2-normalized and indexed using **FAISS** (`IndexFlatIP`) for inner-product similarity search (mathematically equivalent to cosine similarity after normalization). User queries are embedded on the fly, normalized, and compared against the FAISS index to find the nearest semantic neighbors.
+- **Workflow:** Uses `sentence-transformers` (specifically `all-MiniLM-L6-v2`) to
+  convert the `combined_text` of each document into dense vector embeddings. The
+  embeddings are L2-normalized and indexed using **FAISS**. For corpora under 10,000
+  documents we use `IndexFlatIP` (exact search). For the full dataset (700k+ docs) we
+  use `IndexIVFFlat` (nlist=256, nprobe=32), which clusters vectors into 256 buckets
+  and searches only the 32 nearest clusters at query time, reducing comparisons by
+  ~8x while recovering >95% of exact top-k results. User queries are embedded on the
+  fly, normalized, and compared against the FAISS index to find the nearest semantic
+  neighbours. Results are deduplicated by `parent_asin` to ensure diverse product
+  recommendations.
