@@ -1,7 +1,5 @@
 # Final Discussion
 
----
-
 ## Step 1: Improve Your Workflow
 
 ### 1.1 Dataset Scaling
@@ -291,8 +289,6 @@ We updated the codebase to ensure it is robust, readable, and platform agnostic:
   candidates and deduplicate by `parent_asin` before returning results. This was
   necessary at 700k scale where popular products with many reviews would otherwise
   flood the top-k with near-identical embeddings.
-
----
 
 ## Step 4: Cloud Deployment Plan
 

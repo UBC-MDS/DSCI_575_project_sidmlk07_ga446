@@ -30,7 +30,9 @@ def bm25_search(
     scores = bm25.get_scores(tokenized_query)
 
     # from lecture
-    ranked_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:top_k]
+    ranked_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[
+        :top_k
+    ]
 
     results = []
     for rank, idx in enumerate(ranked_idx, start=1):
@@ -45,11 +47,19 @@ def bm25_search(
 
 
 def save_bm25(bm25: BM25Okapi, tokenized_corpus: list[list[str]], path_prefix: str):
+    """
+    Saves a BM25 index and its associated tokenized corpus to
+    pickle files using the provided path prefix.
+    """
     save_pickle(bm25, f"{path_prefix}_bm25.pkl")
     save_pickle(tokenized_corpus, f"{path_prefix}_tokenized.pkl")
 
 
 def load_bm25(path_prefix: str) -> tuple[BM25Okapi, list[list[str]]]:
+    """
+    Loads and returns a saved BM25 index and its
+    tokenized corpus from the specified path prefix.
+    """
     bm25 = load_pickle(f"{path_prefix}_bm25.pkl")
     tokenized_corpus = load_pickle(f"{path_prefix}_tokenized.pkl")
     return bm25, tokenized_corpus
