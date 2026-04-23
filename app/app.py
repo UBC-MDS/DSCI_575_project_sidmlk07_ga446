@@ -3,8 +3,10 @@ import streamlit as st
 import math
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.utils import load_corpus_parquet, load_pickle
+ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(ROOT))
+
+from src.utils import load_corpus_parquet
 from src.bm25 import bm25_search, load_bm25
 from src.semantic import semantic_search, load_semantic_artifacts
 from src.hybrid_rag_pipeline import rag_chain, hybrid_retrieve_docs
@@ -16,16 +18,11 @@ st.title("🔍 Amazon Product Search")
 
 @st.cache_resource
 def load_everything():
-    # load corpus from parquet
-    df, corpus = load_corpus_parquet("data/processed/products.parquet")
-
-    # load BM25
-    bm25, _ = load_bm25("data/processed/index")
-
-    # load FAISS artifacts separately
-    index, doc_ids, config = load_semantic_artifacts("artifacts")
+    """Load and cache all indexes and models at startup."""
+    df, corpus = load_corpus_parquet(ROOT / "data/processed/products.parquet")
+    bm25, _ = load_bm25(str(ROOT / "data/processed/index"))
+    index, doc_ids, config = load_semantic_artifacts(str(ROOT / "artifacts"))
     model = SentenceTransformer(config["model_name"])
-
     return corpus, bm25, index, doc_ids, model
 
 
@@ -41,6 +38,7 @@ query = st.text_input(
 
 
 def show_results(results: list[dict], label: str):
+    """Display a list of retrieved product results with title, review, rating, price and score."""
     st.subheader(label)
     if not results:
         st.warning("No results found.")

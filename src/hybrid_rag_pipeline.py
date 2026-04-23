@@ -13,23 +13,43 @@ from src.semantic import semantic_search, load_semantic_artifacts
 from src.bm25 import bm25_search, load_bm25
 from sentence_transformers import SentenceTransformer
 
+# Load all artifacts at module level so they are shared across the app
+# without reloading on every query
 llm = ChatOllama(model="llama3.2", temperature=0)
 root = Path(__file__).parent.parent
 
 _, corpus = load_corpus_parquet(root / "data/processed/products.parquet")
 faiss_index, doc_ids, config = load_semantic_artifacts(root / "artifacts")
 st_model = SentenceTransformer(config["model_name"])
-
 bm25_index, _ = load_bm25(str(root / "data/processed/index"))
 
 
-def get_rrf_score(item_dictionary):
-    """Helper function to sort the dictionary."""
+def get_rrf_score(item_dictionary: dict) -> float:
+    """
+    Key function for sorting RRF score dictionaries.
+    Returns the rrf_score value from a candidate document dictionary,
+    used as the sort key in hybrid_retrieve_docs.
+    """
     return item_dictionary["rrf_score"]
 
 
-def hybrid_retrieve_docs(query: str, top_k=5) -> list[dict]:
-    """Combines BM25 and Semantic search using Reciprocal Rank Fusion (RRF)."""
+def hybrid_retrieve_docs(query: str, top_k: int = 5) -> list[dict]:
+    """
+    Retrieve the top_k most relevant documents using Reciprocal Rank Fusion (RRF).
+
+    Runs the query through both BM25 (keyword) and FAISS semantic search,
+    fetching 15 candidates from each. RRF combines the ranked lists by
+    assigning each document a score of 1/(60 + rank) per list and summing
+    across lists. Documents appearing highly in both lists receive the
+    highest fused scores, mitigating the weaknesses of either method alone.
+
+    Args:
+        query: Natural language search query from the user.
+        top_k: Number of fused results to return (default 5).
+
+    Returns:
+        List of top_k document dicts sorted by descending RRF score.
+    """
     sem_results = semantic_search(
         query, st_model, faiss_index, doc_ids, corpus, top_k=15
     )
@@ -37,14 +57,12 @@ def hybrid_retrieve_docs(query: str, top_k=5) -> list[dict]:
 
     rrf_scores = {}
 
-    # Process Semantic Results
     for rank, doc in enumerate(sem_results, 1):
         doc_id = doc.get("parent_asin") or doc.get("asin")
         if doc_id not in rrf_scores:
             rrf_scores[doc_id] = {"rrf_score": 0.0, "doc_data": doc}
         rrf_scores[doc_id]["rrf_score"] += 1.0 / (60 + rank)
 
-    # Process BM25 Results
     for rank, doc in enumerate(bm25_results, 1):
         doc_id = doc.get("parent_asin") or doc.get("asin")
         if doc_id not in rrf_scores:
@@ -53,15 +71,24 @@ def hybrid_retrieve_docs(query: str, top_k=5) -> list[dict]:
 
     sorted_fused_docs = sorted(rrf_scores.values(), key=get_rrf_score, reverse=True)
 
-    final_docs = []
-    for item in sorted_fused_docs[:top_k]:
-        final_docs.append(item["doc_data"])
-
-    return final_docs
+    return [item["doc_data"] for item in sorted_fused_docs[:top_k]]
 
 
 def build_context(docs: list[dict]) -> str:
-    """Converts retrieved document dictionaries into a prompt-ready context block."""
+    """
+    Format a list of retrieved product documents into a plain-text context block
+    for the RAG prompt.
+
+    Each product entry includes its ASIN, title, rating, price, and a review
+    snippet. Missing prices are explicitly labeled as 'Price not listed in
+    database' to prevent the LLM from hallucinating price values.
+
+    Args:
+        docs: List of product document dicts from hybrid_retrieve_docs.
+
+    Returns:
+        A formatted multi-line string ready to be injected into the prompt template.
+    """
     context_str = ""
     for i, doc in enumerate(docs, 1):
         asin = doc.get("parent_asin") or doc.get("asin", "N/A")
@@ -119,6 +146,5 @@ if __name__ == "__main__":
     test_query = "What is a good mineral face sunscreen with no white cast?"
     print(f"Query: {test_query}\n")
     print("Executing Hybrid Retrieval and Generating Answer...\n")
-
     answer = rag_chain.invoke(test_query)
     print(answer)
