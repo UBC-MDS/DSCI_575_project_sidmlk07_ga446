@@ -2,6 +2,7 @@ import gzip
 import json
 import re
 import pickle
+import numpy as np
 import pandas as pd
 from pathlib import Path
 import nltk
@@ -142,23 +143,29 @@ def build_corpus_from_parquet(
     Uses vectorized pandas merge instead of iterrows() for performance.
     Handles 100k+ records efficiently.
     """
-    # Normalize list fields to strings before merge
+
+    # Normalize list fields to strings before merge safely handling NaNs
     def flatten(val):
-        if isinstance(val, list):
-            return " ".join(str(v) for v in val if v)
-        return str(val) if pd.notna(val) else ""
+        if isinstance(val, (list, np.ndarray)):
+            return " ".join([str(v) for v in val if v is not None])
+        if val is None or (isinstance(val, float) and np.isnan(val)):
+            return ""
+        return str(val)
 
     meta_df = meta_df.copy()
     meta_df["description"] = meta_df["description"].apply(flatten)
     meta_df["features"] = meta_df["features"].apply(flatten)
-    meta_df["title"] = meta_df["title"].fillna("")
+    meta_df["title"] = meta_df.get("title", pd.Series(dtype=object)).fillna("")
     meta_df["price"] = meta_df.get("price", pd.Series(dtype=object))
 
     # Keep one metadata row per parent_asin
     meta_dedup = meta_df.drop_duplicates(subset="parent_asin")
 
+    # FIX: Drop the review 'title' column to prevent merge collisions (title_x, title_y)
+    reviews_safe = reviews_df.drop(columns=["title"], errors="ignore")
+
     # Merge reviews with metadata on parent_asin
-    merged = reviews_df.merge(
+    merged = reviews_safe.merge(
         meta_dedup[["parent_asin", "title", "description", "features", "price"]],
         on="parent_asin",
         how="left",
@@ -172,15 +179,22 @@ def build_corpus_from_parquet(
     merged["price"] = merged["price"] if "price" in merged.columns else None
 
     merged["combined_text"] = (
-        merged["title"] + " "
-        + merged["description"] + " "
-        + merged["features"] + " "
+        merged["title"]
+        + " "
+        + merged["description"]
+        + " "
+        + merged["features"]
+        + " "
         + merged["review_text"]
     ).str.strip()
 
-    corpus = merged[
-        ["parent_asin", "title", "review_text", "rating", "price", "combined_text"]
-    ].rename(columns={"parent_asin": "asin"}).to_dict(orient="records")
+    corpus = (
+        merged[
+            ["parent_asin", "title", "review_text", "rating", "price", "combined_text"]
+        ]
+        .rename(columns={"parent_asin": "asin"})
+        .to_dict(orient="records")
+    )
 
     return corpus
 

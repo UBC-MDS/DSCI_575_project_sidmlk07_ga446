@@ -12,9 +12,9 @@ from src.utils import (
 root = Path(__file__).parent.parent
 
 CATEGORY = "All_Beauty"
-# Kept at 5000 for faster processing
+# Kept at 65000 for faster processing
 # Update to `None` for capable machines
-MAX_REVIEWS = 5000
+MAX_REVIEWS = 65000
 
 reviews_parquet = root / "data/processed/reviews.parquet"
 meta_parquet = root / "data/processed/metadata.parquet"

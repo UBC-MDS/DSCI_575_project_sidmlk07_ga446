@@ -5,10 +5,10 @@
 ### 1.1 Dataset Scaling
 
 For Milestone 1, the pipeline was capped at `MAX_REVIEWS = 5000` due to CPU encoding
-constraints during development. For the final submission, we removed this cap and
-processed the **full All_Beauty dataset**.
+constraints during development. For the final submission, we changed it to 65000.
+Locally, we also tested with the **FULL** dataset, results for which are in the table below.
 
-| Metric | Final Submission |
+| Metric | Full Dataset Testing |
 |---|---|
 | Reviews loaded | 701,528 |
 | Unique products  | 112,565 |
